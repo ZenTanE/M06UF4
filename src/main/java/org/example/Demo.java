@@ -12,7 +12,7 @@ import static com.mongodb.client.model.Filters.eq;
 
 public class Demo {
     public static void main(String[] args) {
-        testmysql();
+        //testmysql();
         testmongo();
     }
 

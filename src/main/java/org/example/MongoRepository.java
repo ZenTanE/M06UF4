@@ -1,25 +1,31 @@
 package org.example;
 
+import com.mongodb.client.*;
+import org.bson.Document;
+
 import java.sql.*;
 import java.util.stream.Stream;
+
+import static com.mongodb.client.model.Filters.eq;
 
 
 public class MongoRepository implements DatabaseRepository {
 
-    private String uri = "jdbc:mysql://localhost/mydatabase?user=myuser&password=mypass";
+    String uri = "mongodb://localhost";
 
     @Override
     public Stream<Person> createPerson(Person person) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("INSERT INTO person(personid, name) VALUES(?,?)");
-            statement.setString(1, String.valueOf(person.personid));
-            statement.setString(2, person.name);
-            statement.executeUpdate();
+            MongoDatabase database = mongoClient.getDatabase("sampledb");
+            MongoCollection<Document> collection = database.getCollection("person");
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+            Document doc = new Document();
+            doc.append("personid", person.personid);
+            doc.append("name", person.name);
+            collection.insertOne(doc);
+
         }
 
         return Stream.of(person);
@@ -29,19 +35,13 @@ public class MongoRepository implements DatabaseRepository {
     @Override
     public Stream<Person> readPerson(Integer personid) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("SELECT * FROM person WHERE personid = ?");
-            statement.setString(1, String.valueOf(personid));
-            statement.executeQuery();
+            MongoDatabase database = mongoClient.getDatabase("sampledb");
+            MongoCollection<Document> collection = database.getCollection("person");
 
-            ResultSet resultSet = statement.getResultSet();
-            while (resultSet.next()) {
-                System.out.println(resultSet.getString("name"));
-            }
+            System.out.println(collection.find(eq("personid", personid)).first().toJson());
 
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         return null;
@@ -51,19 +51,17 @@ public class MongoRepository implements DatabaseRepository {
     @Override
     public Stream<Person> readAllPersons() {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("SELECT * FROM person");
-            statement.executeQuery();
+            MongoDatabase database = mongoClient.getDatabase("sampledb");
+            MongoCollection<Document> collection = database.getCollection("person");
 
-            ResultSet resultSet = statement.getResultSet();
-
-            while (resultSet.next()) {
-                System.out.println(resultSet.getString("name"));
+            FindIterable<Document> iterable = collection.find();
+            MongoCursor<Document> cursor = iterable.iterator();
+            while (cursor.hasNext()) {
+                System.out.println(cursor.next().toJson());
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         return null;
@@ -72,48 +70,31 @@ public class MongoRepository implements DatabaseRepository {
     @Override
     public void updatePerson(Person person) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("UPDATE person SET name = ? WHERE personid = ?");
-            statement.setString(1, person.name);
-            statement.setString(2, String.valueOf(person.personid));
-            statement.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
     }
 
     @Override
     public void deletePerson(Integer personid) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("DELETE FROM person WHERE personid = ?");
-            statement.setString(1, String.valueOf(personid));
-            statement.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
     }
 
     @Override
     public Stream<Thing> createThing(Thing thing) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
 
-            //INSERT
-            PreparedStatement statement = conn.prepareStatement("INSERT INTO thing(thingid, title, personid) VALUES(?,?,?)");
-            statement.setString(1, String.valueOf(thing.thingid));
-            statement.setString(2, thing.title);
-            statement.setString(3, String.valueOf(thing.personid));
-            statement.executeUpdate();
+            MongoDatabase database = mongoClient.getDatabase("sampledb");
+            MongoCollection<Document> collection = database.getCollection("person");
 
-        } catch (SQLException e) {
-            e.printStackTrace();
+            Document doc = new Document();
+            doc.append("thingid", thing.personid);
+            doc.append("title", thing.title);
+            doc.append("personid", thing.personid);
+            collection.insertOne(doc);
+
         }
 
         return null;
@@ -122,19 +103,17 @@ public class MongoRepository implements DatabaseRepository {
     @Override
     public Stream<Thing> readAllThingsByPersonid(Integer personid) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("SELECT * FROM thing WHERE personid = ?");
-            statement.setString(1, String.valueOf(personid));
-            statement.executeQuery();
+            MongoDatabase database = mongoClient.getDatabase("sampledb");
+            MongoCollection<Document> collection = database.getCollection("person");
 
-            ResultSet resultSet = statement.getResultSet();
-            while (resultSet.next()) {
-                System.out.println(resultSet.getString("title"));
+            FindIterable<Document> iterable = collection.find(eq("personid", personid));
+            MongoCursor<Document> cursor = iterable.iterator();
+            while (cursor.hasNext()) {
+                System.out.println(cursor.next().toJson());
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         return null;
@@ -143,31 +122,14 @@ public class MongoRepository implements DatabaseRepository {
     @Override
     public void updateThing(Thing thing) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("UPDATE thing SET title = ? WHERE thingid = ?");
-            statement.setString(1, thing.title);
-            statement.setString(2, String.valueOf(thing.thingid));
-            statement.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
     }
 
     @Override
     public void deleteThing(Integer thingid) {
 
-        try (Connection conn = DriverManager.getConnection(uri)) {
 
-            PreparedStatement statement = conn.prepareStatement("DELETE FROM thing WHERE thingid = ?");
-            statement.setString(1, String.valueOf(thingid));
-            statement.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
 
     }
 
